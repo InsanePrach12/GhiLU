@@ -229,7 +229,7 @@ If using [Railway.app](https://railway.app/):
 
 - We stacked multiple overlapping `solar_reduction` directives on the same hour **multiplicatively** (conservative; never lets an hour un-reduce). Behaviour is not explicitly specified by the problem statement.
 - The LLM call has a **20-second** timeout; a slow or unavailable provider degrades that scenario's notes to `no_op` rather than blocking the request indefinitely.
-- We haven't added caching or a retry layer on the LLM call yet - recommended if provider latency is inconsistent under load.
+- **LLM Fallback & Retry Logic**: We implemented an intelligent model fallback loop. If the primary model encounters API rate limits (e.g., `503 Service Unavailable`) or is unavailable (`404`), the pipeline instantly cascades to alternative fallback models to ensure the energy schedule is successfully generated without crashing.
 - It's a single in-process uvicorn worker; horizontal scaling should be done at the container/replica level, not via `--workers N`.
 
 ---
