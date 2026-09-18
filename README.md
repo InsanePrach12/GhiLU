@@ -1,4 +1,4 @@
-# GridWise — Our LLM-Assisted Smart Campus Energy Optimizer
+# GridWise — Our LLM-Assisted Smart Campus Energy Optimizer By GhiLU
 
 This is our FastAPI service for the **BUP CSE Fest 2026 Hackathon (Preliminary)**. It takes 24 hours of campus energy data plus 1–3 free-form operator notes, uses an LLM only to interpret the notes, and then solves a deterministic MILP to produce the minimum-cost schedule — complete with a self-check replay that mirrors the judge's validator.
 
