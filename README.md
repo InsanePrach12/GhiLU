@@ -1,19 +1,12 @@
-# GridWise — LLM-Assisted Smart Campus Energy Optimizer
+# GridWise — My LLM-Assisted Smart Campus Energy Optimizer
 
-FastAPI service for the **BUP CSE Fest 2026 Hackathon (Preliminary)**. Takes
-24 hours of campus energy data plus 1–3 free-form operator notes, uses an
-LLM only to interpret the notes, then solves a deterministic MILP to produce
-the minimum-cost schedule — with a self-check replay that mirrors the
-judge's validator.
+This is my FastAPI service for the **BUP CSE Fest 2026 Hackathon (Preliminary)**. It takes 24 hours of campus energy data plus 1–3 free-form operator notes, uses an LLM only to interpret the notes, and then solves a deterministic MILP to produce the minimum-cost schedule — complete with a self-check replay that mirrors the judge's validator.
 
 ---
 
-## 1. Architecture
+## 1. My Architecture
 
-The service is a single FastAPI process. Every `/optimize-energy` request
-flows through four strictly separated stages. Only stage 1 (the LLM) is
-untrusted; stages 2–4 are pure, deterministic Python and never see raw LLM
-output.
+I designed the service as a single FastAPI process. Every `/optimize-energy` request flows through four strictly separated stages. Only stage 1 (the LLM) is untrusted; stages 2–4 are pure, deterministic Python and never see raw LLM output.
 
 ```
                        Operator Notes
@@ -23,14 +16,14 @@ output.
 |  Stage 1 - LLM Interpreter        app/llm_interpreter.py      |
 |  Gemini (google-genai, structured output, JSON schema).       |
 |  One call per request. Returns raw interpretation dicts.      |
-|  On any failure (timeout, parse error, missing key) it        |
-|  returns [] and the request continues safely.                 |
+|  On any failure (timeout, parse error, missing key) I make    |
+|  it return [] so the request continues safely.                |
 +---------------------------------------------------------------+
                             |
                             v
 +---------------------------------------------------------------+
 |  Stage 2 - Guardrail Validator     app/guardrails.py          |
-|  Re-validates every field, enforces hours 0..23, factors 0..1,|
+|  I re-validate every field, enforce hours 0..23, factors 0..1,|
 |  required keys per directive type. Anything that fails is     |
 |  downgraded to no_op. Always emits one DirectiveInterpretation|
 |  per input note.                                              |
@@ -42,7 +35,7 @@ output.
 |  PuLP/CBC MILP over 24 hours.                                 |
 |  Decision vars: grid[h], solar_used[h], charge[h],            |
 |                 discharge[h], is_charging[h], energy_after[h].|
-|  Objective: minimize sum(grid[h] * tariff_bdt_per_kwh).      |
+|  Objective: minimize sum(grid[h] * tariff_bdt_per_kwh).       |
 |  Constraints: energy balance, effective solar, battery        |
 |  capacity/min-reserve, charge & discharge rate limits,        |
 |  no_charge / no_discharge windows, max_grid caps,             |
@@ -52,7 +45,7 @@ output.
                             v
 +---------------------------------------------------------------+
 |  Stage 4 - Final Validator         app/final_validator.py     |
-|  Replays the produced plan against the same rules with a       |
+|  I replay the produced plan against the same rules with a     |
 |  0.01 kWh tolerance. Returns 500 "produced schedule failed    |
 |  validation" if any constraint is violated.                   |
 +---------------------------------------------------------------+
@@ -76,9 +69,7 @@ output.
 
 ### LLM scope (Problem Statement §08)
 
-The LLM is **only** used to convert `operator_notes` into structured JSON.
-It never sees demand, tariff, or battery numbers, and it never touches the
-math. The six allowed `directive_type` values are:
+I **only** use the LLM to convert `operator_notes` into structured JSON. It never sees demand, tariff, or battery numbers, and it never touches the math. The six allowed `directive_type` values are:
 
 | Type | Structured fields |
 |------|-------------------|
@@ -91,7 +82,7 @@ math. The six allowed `directive_type` values are:
 
 ---
 
-## 2. API
+## 2. API Endpoints
 
 ### `GET /health`
 
@@ -102,9 +93,7 @@ curl http://127.0.0.1:8000/health
 
 ### `POST /optimize-energy`
 
-Request body matches `app.models.OptimizeRequest` - `scenario_id`,
-`operator_notes` (1-3 strings), `hours` (exactly 24 entries, one per hour
-0..23), and `battery`.
+The request body matches `app.models.OptimizeRequest` - `scenario_id`, `operator_notes` (1-3 strings), `hours` (exactly 24 entries, one per hour 0..23), and `battery`.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/optimize-energy \
@@ -112,13 +101,9 @@ curl -X POST http://127.0.0.1:8000/optimize-energy \
   -d @sample_request.json
 ```
 
-Response includes `directive_interpretation` (one entry per input note,
-always), `hourly_plan` (24 entries with `grid_kwh`, `solar_used_kwh`,
-`battery_action`, `battery_kwh`, `battery_energy_after_kwh`),
-`total_grid_kwh`, `total_cost_bdt`, `peak_grid_kwh`, and a one-line
-`plan_summary`.
+My response includes `directive_interpretation` (one entry per input note, always), `hourly_plan` (24 entries with `grid_kwh`, `solar_used_kwh`, `battery_action`, `battery_kwh`, `battery_energy_after_kwh`), `total_grid_kwh`, `total_cost_bdt`, `peak_grid_kwh`, and a one-line `plan_summary`.
 
-Error responses:
+Error responses I mapped out:
 
 | Code | Reason |
 |------|--------|
@@ -127,7 +112,7 @@ Error responses:
 
 ---
 
-## 3. Local development
+## 3. Local Development
 
 ### 3.1 Setup
 
@@ -140,10 +125,10 @@ pip install -r requirements.txt
 
 | Variable | Required | Meaning |
 |----------|----------|---------|
-| `GEMINI_API_KEY` | yes | API key for the Gemini LLM provider |
+| `GEMINI_API_KEY` | yes | API key for my Gemini LLM provider |
 | `LLM_MODEL` | no | Model name (default: `gemini-2.5-flash`) |
 
-`python-dotenv` is loaded at startup, so a local `.env` file works.
+I load `python-dotenv` at startup, so a local `.env` file works perfectly.
 
 ```bash
 export GEMINI_API_KEY=AIzaSy...
@@ -170,7 +155,7 @@ python scripts/run_public_samples.py /path/to/BUP_CSE_FEST_2026_Preli_Public_Sam
 
 ### 4.1 Image
 
-`Dockerfile`:
+Here's how I set up the `Dockerfile`:
 
 - Base: `python:3.11-slim`
 - Working dir: `/srv`
@@ -178,8 +163,7 @@ python scripts/run_public_samples.py /path/to/BUP_CSE_FEST_2026_Preli_Public_Sam
 - Copies `app/` only (no `.env`, no test fixtures baked in)
 - Exposes `8000`, launches with `uvicorn app.main:app --host 0.0.0.0 --port 8000`
 
-No secrets are baked into any layer. `GEMINI_API_KEY` and `LLM_MODEL` must
-be supplied at `docker run` time.
+I made sure no secrets are baked into any layer. `GEMINI_API_KEY` and `LLM_MODEL` must be supplied at `docker run` time.
 
 ### 4.2 Build & run
 
@@ -201,34 +185,34 @@ curl http://127.0.0.1:8000/health
 
 ---
 
-## 5. Deployment (Hackathon Guide)
+## 5. Deployment (My Hackathon Setup)
 
-The service is a stateless FastAPI app, which makes it perfect for free PaaS hosting like Render or Railway. 
+My service is a stateless FastAPI app, which makes it perfect for free PaaS hosting like Render or Railway. 
 
-### 5.1 Deploying on Render (Recommended)
+### 5.1 How I deployed on Render (Recommended)
 
-Render can build and deploy directly from your GitHub repository:
+I used Render to build and deploy directly from my GitHub repository:
 1. Go to [Render](https://render.com) and create a **Web Service**.
-2. Connect your GitHub repository.
-3. Select **Docker** as the environment (Render will use the included `Dockerfile`).
+2. Connect the GitHub repository.
+3. Select **Docker** as the environment (Render will use my included `Dockerfile`).
 4. Under **Advanced**, add the required environment variables:
-   - `GEMINI_API_KEY`: Your API key
+   - `GEMINI_API_KEY`: My API key
    - `LLM_MODEL`: `gemini-2.5-flash`
-5. Click **Create Web Service**. Once live, your endpoints `/health` and `/optimize-energy` will be available at your `onrender.com` URL.
+5. Click **Create Web Service**. Once live, the endpoints `/health` and `/optimize-energy` are available at the `onrender.com` URL.
 
-### 5.2 Deploying on Railway
+### 5.2 Deploying on Railway (Alternative)
 
-Alternatively, use [Railway.app](https://railway.app/):
+If using [Railway.app](https://railway.app/):
 1. Click **New Project** -> **Deploy from GitHub repo**.
-2. Select your repository.
+2. Select the repository.
 3. Under the **Variables** tab, add `GEMINI_API_KEY` and `LLM_MODEL`.
 4. Railway will automatically build via Docker and provide a public URL.
 
 ---
 
-## 6. Dependencies
+## 6. Dependencies I Used
 
-| Package | Version | Why |
+| Package | Version | Why I chose it |
 |---------|---------|-----|
 | `fastapi` | `0.115.0` | HTTP framework |
 | `uvicorn[standard]` | `0.30.6` | ASGI server |
@@ -237,30 +221,19 @@ Alternatively, use [Railway.app](https://railway.app/):
 | `python-dotenv` | `>=1.0.1` | Local `.env` loading |
 | `pulp` | `2.9.0` | MILP modelling + bundled CBC solver (no external solver needed) |
 
-`pulp` ships with the CBC binary inside the wheel, so the Docker image
-needs no extra apt packages for the optimizer.
+`pulp` ships with the CBC binary inside the wheel, so my Docker image needs no extra apt packages for the optimizer.
 
 ---
 
-## 7. Known limitations
+## 7. Known Limitations
 
-- Multiple overlapping `solar_reduction` directives on the same hour are
-  stacked **multiplicatively** (conservative; never lets an hour
-  un-reduce). Behaviour is not explicitly specified by the problem
-  statement.
-- The LLM call has a **20-second** timeout; a slow or unavailable
-  provider degrades that scenario's notes to `no_op` rather than
-  blocking the request.
-- No caching or retry layer on the LLM call yet - recommended if
-  provider latency is inconsistent under load.
-- Single in-process uvicorn worker; horizontal scaling is done at the
-  container/replica level, not via `--workers N`.
+- I stacked multiple overlapping `solar_reduction` directives on the same hour **multiplicatively** (conservative; never lets an hour un-reduce). Behaviour is not explicitly specified by the problem statement.
+- The LLM call has a **20-second** timeout; a slow or unavailable provider degrades that scenario's notes to `no_op` rather than blocking the request indefinitely.
+- I haven't added caching or a retry layer on the LLM call yet - recommended if provider latency is inconsistent under load.
+- It's a single in-process uvicorn worker; horizontal scaling should be done at the container/replica level, not via `--workers N`.
 
 ---
 
-## 8. Secret handling
+## 8. Secret Handling
 
-No secrets are committed to this repository or baked into the Docker
-image. `GEMINI_API_KEY` is read from the environment only - at startup
-(`load_dotenv()`) in `app/main.py` and at first LLM call in
-`app/llm_interpreter.py`.
+I made sure no secrets are committed to this repository or baked into the Docker image. `GEMINI_API_KEY` is read from the environment only - at startup (`load_dotenv()`) in `app/main.py` and at my first LLM call in `app/llm_interpreter.py`.
