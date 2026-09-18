@@ -8,6 +8,7 @@ Updated to use Google GenAI SDK (Gemini) with Structured Outputs.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import Any, Dict, List
 
@@ -16,7 +17,16 @@ from pydantic import BaseModel
 
 from app.models import DirectiveInterpretation
 
-MODEL_NAME = os.environ.get("LLM_MODEL", "gemini-3.5-flash")
+logger = logging.getLogger("gridwise")
+
+PRIMARY_MODEL = os.environ.get("LLM_MODEL", "gemini-3.5-flash")
+FALLBACK_MODELS = [
+    PRIMARY_MODEL,
+    "gemini-2.5-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-3.5-flash"
+]
 
 _client: genai.Client | None = None
 
@@ -77,23 +87,28 @@ def interpret_notes(operator_notes: List[str]) -> List[Dict[str, Any]]:
         "Return the structured JSON object now."
     )
 
-    try:
-        client = _get_client()
-        resp = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=user_prompt,
-            config=genai.types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0,
-                response_mime_type="application/json",
-                response_schema=LLMResponse,
+    client = _get_client()
+    
+    for model_name in FALLBACK_MODELS:
+        try:
+            resp = client.models.generate_content(
+                model=model_name,
+                contents=user_prompt,
+                config=genai.types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    temperature=0,
+                    response_mime_type="application/json",
+                    response_schema=LLMResponse,
+                )
             )
-        )
-        
-        parsed = json.loads(resp.text)
-        return parsed.get("directive_interpretation", [])
-    except Exception:
-        # SAFE FAILURE (Problem Statement §08): malformed/unavailable LLM
-        # output must not crash the service. Guardrails will fall back to
-        # no_op for every note when this returns an empty list.
-        return []
+            
+            parsed = json.loads(resp.text)
+            return parsed.get("directive_interpretation", [])
+        except Exception as e:
+            logger.warning(f"LLM call failed for model {model_name}: {e}")
+            continue
+            
+    # SAFE FAILURE (Problem Statement §08): malformed/unavailable LLM
+    # output must not crash the service. Guardrails will fall back to
+    # no_op for every note when this returns an empty list.
+    return []
