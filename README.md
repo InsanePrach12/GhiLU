@@ -59,7 +59,7 @@ We designed the service as a single FastAPI process. Every `/optimize-energy` re
 | Path | Role |
 |------|------|
 | `app/main.py` | FastAPI app, routes, error handling, response aggregation |
-| `app/models.py` | Pydantic v2 request/response schemas (matches Problem Statement §07 & §10) |
+| `app/models.py` | Pydantic v2 request/response schemas (matches Problem Statement 07 & 10) |
 | `app/llm_interpreter.py` | Stage 1 - Gemini structured-output call, system prompt, safe-failure wrapper |
 | `app/guardrails.py` | Stage 2 - untrusted-output validator + downgrade-to-no_op logic |
 | `app/directives.py` | Internal dataclasses for validated directives (`ValidatedDirectives`, `SolarReduction`, ...) |
@@ -67,7 +67,7 @@ We designed the service as a single FastAPI process. Every `/optimize-energy` re
 | `app/final_validator.py` | Stage 4 - independent replay with 0.01 kWh tolerance |
 | `scripts/run_public_samples.py` | Driver for the hackathon's public sample-cases JSON |
 
-### LLM scope (Problem Statement §08)
+### LLM scope (Problem Statement 08)
 
 We **only** use the LLM to convert `operator_notes` into structured JSON. It never sees demand, tariff, or battery numbers, and it never touches the math. The six allowed `directive_type` values are:
 
