@@ -201,79 +201,28 @@ curl http://127.0.0.1:8000/health
 
 ---
 
-## 5. Deployment
+## 5. Deployment (Hackathon Guide)
 
-The service is a stateless FastAPI app behind a single uvicorn worker, so
-any of the standard patterns work. Pick the one that matches the host.
+The service is a stateless FastAPI app, which makes it perfect for free PaaS hosting like Render or Railway. 
 
-### 5.1 Bare container (single host)
+### 5.1 Deploying on Render (Recommended)
 
-```bash
-docker run -d --name gridwise --restart unless-stopped -p 8000:8000 \
-  -e GEMINI_API_KEY="$GEMINI_API_KEY" \
-  -e LLM_MODEL=gemini-2.5-flash \
-  gridwise:latest
-```
+Render can build and deploy directly from your GitHub repository:
+1. Go to [Render](https://render.com) and create a **Web Service**.
+2. Connect your GitHub repository.
+3. Select **Docker** as the environment (Render will use the included `Dockerfile`).
+4. Under **Advanced**, add the required environment variables:
+   - `GEMINI_API_KEY`: Your API key
+   - `LLM_MODEL`: `gemini-2.5-flash`
+5. Click **Create Web Service**. Once live, your endpoints `/health` and `/optimize-energy` will be available at your `onrender.com` URL.
 
-Put nginx, Caddy, or a cloud load-balancer in front for TLS and rate
-limiting. Forward `/health` to the container as the health-check URL.
+### 5.2 Deploying on Railway
 
-### 5.2 Docker Compose
-
-A minimal `compose.yaml` (create next to the project):
-
-```yaml
-services:
-  gridwise:
-    build: .
-    image: gridwise:latest
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      LLM_MODEL: gemini-2.5-flash
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-```
-
-```bash
-docker compose up -d --build
-docker compose logs -f gridwise
-```
-
-### 5.3 Production notes
-
-- **Process model.** A single uvicorn worker is sufficient - PuLP/CBC
-  holds the GIL during solve and the LLM call is a network round-trip;
-  horizontal scaling is via container replicas, not `--workers N`.
-- **Resources.** MILP solve for 24 hours is light (sub-second on a
-  single core), but peak memory spikes with the LP matrix. `512 MiB`
-  RAM and `0.5` CPU are a safe minimum per replica.
-- **Timeouts.** The Gemini client has a 20s timeout (see
-  `llm_interpreter.py`); the upstream proxy should give each request
-  at least 30s.
-- **Secrets.** Inject `GEMINI_API_KEY` via the platform's secret store
-  (Docker secret, k8s `Secret`, ECS SSM, etc.). Never commit it; never
-  bake it into the image.
-- **Observability.** Logs go to stdout in the standard uvicorn format;
-  pipe them into the platform's log sink. Add a `/metrics` endpoint
-  later if Prometheus scraping is needed.
-- **Versioning.** `app.main:app` declares `version="1.0.0"`. Bump it
-  with every release and rebuild the image - tags are the deployment
-  unit.
-
-### 5.4 Rollback
-
-Re-tag the previous image and re-deploy:
-
-```bash
-docker tag gridwise:1.0.0 gridwise:latest
-docker compose up -d
-```
+Alternatively, use [Railway.app](https://railway.app/):
+1. Click **New Project** -> **Deploy from GitHub repo**.
+2. Select your repository.
+3. Under the **Variables** tab, add `GEMINI_API_KEY` and `LLM_MODEL`.
+4. Railway will automatically build via Docker and provide a public URL.
 
 ---
 
