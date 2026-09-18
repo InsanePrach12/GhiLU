@@ -126,13 +126,13 @@ pip install -r requirements.txt
 | Variable | Required | Meaning |
 |----------|----------|---------|
 | `GEMINI_API_KEY` | yes | API key for our Gemini LLM provider |
-| `LLM_MODEL` | no | Model name (default: `gemini-2.5-flash`) |
+| `LLM_MODEL` | no | Model name (default: `gemini-3.5-flash`) |
 
 We load `python-dotenv` at startup, so a local `.env` file works perfectly.
 
 ```bash
 export GEMINI_API_KEY=AIzaSy...
-export LLM_MODEL=gemini-2.5-flash
+export LLM_MODEL=gemini-3.5-flash
 ```
 
 ### 3.3 Run
@@ -172,7 +172,7 @@ docker build -t gridwise:latest .
 
 docker run --rm -p 8000:8000 \
   -e GEMINI_API_KEY=AIzaSy... \
-  -e LLM_MODEL=gemini-2.5-flash \
+  -e LLM_MODEL=gemini-3.5-flash \
   gridwise:latest
 ```
 
@@ -197,7 +197,7 @@ We used Render to build and deploy directly from our GitHub repository:
 3. Select **Docker** as the environment (Render will use our included `Dockerfile`).
 4. Under **Advanced**, add the required environment variables:
    - `GEMINI_API_KEY`: Our API key
-   - `LLM_MODEL`: `gemini-2.5-flash`
+   - `LLM_MODEL`: `gemini-3.5-flash`
 5. Click **Create Web Service**. Once live, the endpoints `/health` and `/optimize-energy` are available at the `onrender.com` URL.
 
 ### 5.2 Deploying on Railway (Alternative)

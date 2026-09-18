@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from app.models import DirectiveInterpretation
 
-MODEL_NAME = os.environ.get("LLM_MODEL", "gemini-2.5-flash")
+MODEL_NAME = os.environ.get("LLM_MODEL", "gemini-3.5-flash")
 
 _client: genai.Client | None = None
 
